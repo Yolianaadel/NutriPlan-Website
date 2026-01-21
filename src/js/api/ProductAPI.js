@@ -11,7 +11,7 @@ export class ProductAPI {
         ///products/search?q=${encodeURIComponent(name)}&page=${page}&limit=${limit}
       );
       let data = await response.json();
-      return data.products || [];
+      return data.results || [];
     } catch (error) {
       console.error('Error searching products:', error);
       return [];

@@ -38,6 +38,7 @@ export class MealDetailsPage {
     // Get dynamic nutrition from API
     this.currentMeal.nutrition =
       await this.nutritionAPI.analyzeIngredients(
+        this.currentMeal.name,
         this.currentMeal.ingredients
       );
 
