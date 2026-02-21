@@ -10,12 +10,28 @@ export class HomePage {
   }
 
   async init() {
+    this.showGlobalLoader();
+
     await this.loadCategories();
     await this.loadAreas();
     await this.loadMeals();
     this.setupEventListeners();
+    this.hideGlobalLoader();
+  }
+  showGlobalLoader() {
+    const loader = document.getElementById("global-loader");
+    if (loader) loader.style.display = "flex";
   }
 
+  hideGlobalLoader() {
+    const loader = document.getElementById("global-loader");
+    if (loader) {
+      loader.style.opacity = "0";
+      setTimeout(() => {
+        loader.style.display = "none";
+      }, 400);
+    }
+  }
   async loadCategories() {
     this.categories = await this.mealAPI.getCategories();
     this.renderCategoryFilters();
@@ -27,24 +43,28 @@ export class HomePage {
   }
 
   async loadMeals() {
+    this.showGlobalLoader();
     this.showLoading();
-    
-    if (this.currentFilter.type === 'category') {
-      this.meals = await this.mealAPI.filterByCategory(this.currentFilter.value);
-    } else if (this.currentFilter.type === 'area') {
+
+    if (this.currentFilter.type === "category") {
+      this.meals = await this.mealAPI.filterByCategory(
+        this.currentFilter.value,
+      );
+    } else if (this.currentFilter.type === "area") {
       this.meals = await this.mealAPI.filterByArea(this.currentFilter.value);
     } else {
       // Get random 25 meals
       this.meals = await this.mealAPI.getRandomMeals(25);
     }
-    
+
     this.hideLoading();
     this.renderMeals();
+    this.hideGlobalLoader();
     this.updateRecipesCount();
   }
 
   showLoading() {
-    let grid = document.getElementById('recipes-grid');
+    let grid = document.getElementById("recipes-grid");
     if (grid) {
       grid.innerHTML = `
         <div class="col-span-full flex items-center justify-center py-12">
@@ -59,7 +79,7 @@ export class HomePage {
   }
 
   renderMeals() {
-    let grid = document.getElementById('recipes-grid');
+    let grid = document.getElementById("recipes-grid");
     if (!grid) return;
 
     if (this.meals.length === 0) {
@@ -75,11 +95,13 @@ export class HomePage {
       return;
     }
 
-    grid.innerHTML = this.meals.map(meal => this.createMealCard(meal)).join('');
-    
+    grid.innerHTML = this.meals
+      .map((meal) => this.createMealCard(meal))
+      .join("");
+
     // Add click listeners
-    grid.querySelectorAll('.recipe-card').forEach(card => {
-      card.addEventListener('click', () => {
+    grid.querySelectorAll(".recipe-card").forEach((card) => {
+      card.addEventListener("click", () => {
         let mealId = card.dataset.mealId;
         this.router.navigate(`meal/${mealId}`);
       });
@@ -98,10 +120,10 @@ export class HomePage {
           />
           <div class="absolute bottom-3 left-3 flex gap-2">
             <span class="px-2 py-1 bg-white/90 backdrop-blur-sm text-xs font-semibold rounded-full text-gray-700">
-              ${meal.strCategory || 'Food'}
+              ${meal.strCategory || "Food"}
             </span>
             <span class="px-2 py-1 bg-emerald-500 text-xs font-semibold rounded-full text-white">
-              ${meal.strArea || 'International'}
+              ${meal.strArea || "International"}
             </span>
           </div>
         </div>
@@ -115,11 +137,11 @@ export class HomePage {
           <div class="flex items-center justify-between text-xs">
             <span class="font-semibold text-gray-900">
               <i class="fa-solid fa-utensils text-emerald-600 mr-1"></i>
-              ${meal.strCategory || 'Food'}
+              ${meal.strCategory || "Food"}
             </span>
             <span class="font-semibold text-gray-500">
               <i class="fa-solid fa-globe text-blue-500 mr-1"></i>
-              ${meal.strArea || 'International'}
+              ${meal.strArea || "International"}
             </span>
           </div>
         </div>
@@ -128,13 +150,15 @@ export class HomePage {
   }
 
   renderCategoryFilters() {
-    let categoriesGrid = document.getElementById('categories-grid');
+    let categoriesGrid = document.getElementById("categories-grid");
     if (!categoriesGrid) return;
 
     // Show first 12 categories
     let displayCategories = this.categories.slice(0, 12);
-    
-    categoriesGrid.innerHTML = displayCategories.map(cat => `
+
+    categoriesGrid.innerHTML = displayCategories
+      .map(
+        (cat) => `
       <div class="category-card bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-3 border border-emerald-200 hover:border-emerald-400 hover:shadow-md cursor-pointer transition-all group" data-category="${cat.strCategory}">
         <div class="flex items-center gap-2.5">
           <div class="text-white w-9 h-9 bg-gradient-to-br from-emerald-400 to-green-500 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
@@ -145,11 +169,13 @@ export class HomePage {
           </div>
         </div>
       </div>
-    `).join('');
+    `,
+      )
+      .join("");
 
     // Add click listeners
-    categoriesGrid.querySelectorAll('.category-card').forEach(card => {
-      card.addEventListener('click', () => {
+    categoriesGrid.querySelectorAll(".category-card").forEach((card) => {
+      card.addEventListener("click", () => {
         let category = card.dataset.category;
         this.filterByCategory(category);
       });
@@ -157,46 +183,51 @@ export class HomePage {
   }
 
   renderAreaFilters() {
-    let filterSection = document.getElementById('search-filters-section');
+    let filterSection = document.getElementById("search-filters-section");
     if (!filterSection) return;
 
-    let buttonsContainer = filterSection.querySelector('.flex.items-center.gap-3');
+    let buttonsContainer = filterSection.querySelector(
+      ".flex.items-center.gap-3",
+    );
     if (!buttonsContainer) return;
 
     // Clear existing area buttons (keep "All Recipes")
-    let allRecipesBtn = buttonsContainer.querySelector('button');
-    buttonsContainer.innerHTML = '';
+    let allRecipesBtn = buttonsContainer.querySelector("button");
+    buttonsContainer.innerHTML = "";
 
     // Add "All Recipes" button
-    let allBtn = document.createElement('button');
-    allBtn.className = this.currentFilter.type === null 
-      ? 'px-4 py-2 bg-emerald-600 text-white rounded-full font-medium text-sm whitespace-nowrap hover:bg-emerald-700 transition-all'
-      : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-full font-medium text-sm whitespace-nowrap hover:bg-gray-200 transition-all';
-    allBtn.textContent = 'All Recipes';
-    allBtn.addEventListener('click', () => this.clearFilter());
+    let allBtn = document.createElement("button");
+    allBtn.className =
+      this.currentFilter.type === null
+        ? "px-4 py-2 bg-emerald-600 text-white rounded-full font-medium text-sm whitespace-nowrap hover:bg-emerald-700 transition-all"
+        : "px-4 py-2 bg-gray-100 text-gray-700 rounded-full font-medium text-sm whitespace-nowrap hover:bg-gray-200 transition-all";
+    allBtn.textContent = "All Recipes";
+    allBtn.addEventListener("click", () => this.clearFilter());
     buttonsContainer.appendChild(allBtn);
 
     // Add area buttons (first 10)
     let displayAreas = this.areas.slice(0, 10);
-    displayAreas.forEach(area => {
-      let btn = document.createElement('button');
-      btn.className = this.currentFilter.type === 'area' && this.currentFilter.value === area.strArea
-        ? 'px-4 py-2 bg-emerald-600 text-white rounded-full font-medium text-sm whitespace-nowrap hover:bg-emerald-700 transition-all'
-        : 'px-4 py-2 bg-gray-100 text-gray-700 rounded-full font-medium text-sm whitespace-nowrap hover:bg-gray-200 transition-all';
+    displayAreas.forEach((area) => {
+      let btn = document.createElement("button");
+      btn.className =
+        this.currentFilter.type === "area" &&
+        this.currentFilter.value === area.strArea
+          ? "px-4 py-2 bg-emerald-600 text-white rounded-full font-medium text-sm whitespace-nowrap hover:bg-emerald-700 transition-all"
+          : "px-4 py-2 bg-gray-100 text-gray-700 rounded-full font-medium text-sm whitespace-nowrap hover:bg-gray-200 transition-all";
       btn.textContent = area.strArea;
-      btn.addEventListener('click', () => this.filterByArea(area.strArea));
+      btn.addEventListener("click", () => this.filterByArea(area.strArea));
       buttonsContainer.appendChild(btn);
     });
   }
 
   filterByCategory(category) {
-    this.currentFilter = { type: 'category', value: category };
+    this.currentFilter = { type: "category", value: category };
     this.loadMeals();
     this.renderAreaFilters(); // Update button states
   }
 
   filterByArea(area) {
-    this.currentFilter = { type: 'area', value: area };
+    this.currentFilter = { type: "area", value: area };
     this.loadMeals();
     this.renderAreaFilters(); // Update button states
   }
@@ -208,21 +239,21 @@ export class HomePage {
   }
 
   updateRecipesCount() {
-    let countElement = document.getElementById('recipes-count');
+    let countElement = document.getElementById("recipes-count");
     if (countElement) {
-      countElement.textContent = `Showing ${this.meals.length} recipe${this.meals.length !== 1 ? 's' : ''}`;
+      countElement.textContent = `Showing ${this.meals.length} recipe${this.meals.length !== 1 ? "s" : ""}`;
     }
   }
 
   setupEventListeners() {
     // Search input
-    let searchInput = document.getElementById('search-input');
+    let searchInput = document.getElementById("search-input");
     if (searchInput) {
       let searchTimeout;
-      searchInput.addEventListener('input', (e) => {
+      searchInput.addEventListener("input", (e) => {
         clearTimeout(searchTimeout);
         let query = e.target.value.trim();
-        
+
         if (query.length >= 2) {
           searchTimeout = setTimeout(async () => {
             let results = await this.mealAPI.searchMealsByName(query);
@@ -237,47 +268,54 @@ export class HomePage {
     }
 
     // View toggle buttons
-    let gridViewBtn = document.getElementById('grid-view-btn');
-    let listViewBtn = document.getElementById('list-view-btn');
-    let recipesGrid = document.getElementById('recipes-grid');
+    let gridViewBtn = document.getElementById("grid-view-btn");
+    let listViewBtn = document.getElementById("list-view-btn");
+    let recipesGrid = document.getElementById("recipes-grid");
 
     if (gridViewBtn && listViewBtn && recipesGrid) {
-      gridViewBtn.addEventListener('click', () => {
-        recipesGrid.className = 'grid grid-cols-4 gap-5';
-        gridViewBtn.className = 'px-3 py-1.5 bg-white rounded-md shadow-sm';
-        listViewBtn.className = 'px-3 py-1.5';
+      gridViewBtn.addEventListener("click", () => {
+        recipesGrid.className = "grid grid-cols-4 gap-5";
+        gridViewBtn.className = "px-3 py-1.5 bg-white rounded-md shadow-sm";
+        listViewBtn.className = "px-3 py-1.5";
       });
 
-listViewBtn.addEventListener('click', () => {
-  recipesGrid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
-  listViewBtn.className = 'px-3 py-1.5 bg-white rounded-md shadow-sm';
-  gridViewBtn.className = 'px-3 py-1.5';
-});
+      listViewBtn.addEventListener("click", () => {
+        recipesGrid.className = "grid grid-cols-1 md:grid-cols-2 gap-4";
+        listViewBtn.className = "px-3 py-1.5 bg-white rounded-md shadow-sm";
+        gridViewBtn.className = "px-3 py-1.5";
+      });
     }
   }
 
   show() {
-    let sections = ['all-recipes-section', 'meal-categories-section', 'search-filters-section'];
-    sections.forEach(id => {
+    let sections = [
+      "all-recipes-section",
+      "meal-categories-section",
+      "search-filters-section",
+    ];
+    sections.forEach((id) => {
       let section = document.getElementById(id);
-      if (section) section.style.display = 'block';
+      if (section) section.style.display = "block";
     });
 
     // Hide other sections
-    let otherSections = ['meal-details', 'products-section', 'foodlog-section'];
-    otherSections.forEach(id => {
+    let otherSections = ["meal-details", "products-section", "foodlog-section"];
+    otherSections.forEach((id) => {
       let section = document.getElementById(id);
-      if (section) section.style.display = 'none';
+      if (section) section.style.display = "none";
     });
 
     // Update header
-    this.updateHeader('Meals & Recipes', 'Discover delicious and nutritious recipes tailored for you');
+    this.updateHeader(
+      "Meals & Recipes",
+      "Discover delicious and nutritious recipes tailored for you",
+    );
   }
 
   updateHeader(title, subtitle) {
-    let headerTitle = document.querySelector('#header h1');
-    let headerSubtitle = document.querySelector('#header p');
-    
+    let headerTitle = document.querySelector("#header h1");
+    let headerSubtitle = document.querySelector("#header p");
+
     if (headerTitle) headerTitle.textContent = title;
     if (headerSubtitle) headerSubtitle.textContent = subtitle;
   }
